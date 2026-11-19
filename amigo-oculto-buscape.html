@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Amigo Oculto – Família Buscapé</title>
+<style>
+:root{--bg:#fff7f0;--card:#fff;--ink:#2b1d16;--mut:#7a6a60;--pri:#d9480f;--pri2:#f08c00;--line:#f1ddd0;--ok:#2b8a3e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1511;--card:#2a1e18;--ink:#fbeee4;--mut:#bfa898;--pri:#ff8a4c;--pri2:#ffb347;--line:#41302a;--ok:#69db7c}}
+:root[data-theme="dark"]{--bg:#1d1511;--card:#2a1e18;--ink:#fbeee4;--mut:#bfa898;--pri:#ff8a4c;--pri2:#ffb347;--line:#41302a;--ok:#69db7c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;justify-content:center;-webkit-user-select:none;user-select:none}
+textarea{-webkit-user-select:text;user-select:text}
+main{width:100%;max-width:440px;padding:24px 18px 40px}
+header{text-align:center;margin-bottom:22px}
+.gift{font-size:44px}
+h1{margin:6px 0 2px;font-size:26px;line-height:1.15}
+.sub{color:var(--mut);margin:0;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 6px 24px rgba(217,72,15,.08)}
+h2{font-size:18px;margin:0 0 14px;text-align:center}
+.btn{display:block;width:100%;font:inherit;font-weight:700;font-size:17px;padding:16px;border:0;border-radius:16px;color:#fff;background:linear-gradient(135deg,var(--pri),var(--pri2));cursor:pointer;margin-top:14px}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:none;color:var(--mut);font-weight:600;font-size:15px;padding:10px;margin-top:6px}
+.center{text-align:center}
+.who{font-size:22px;font-weight:800;color:var(--pri)}
+.slot{font-size:34px;font-weight:800;margin:22px 0 8px;min-height:48px;word-break:break-word}
+.slot.reveal{color:var(--pri);animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+.note{color:var(--mut);font-size:14px;margin-top:10px}
+.hide{display:none}
+textarea{width:100%;min-height:210px;font:inherit;font-size:16px;padding:12px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
+.row{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row b{flex:1;font-size:16px}
+.mini{font:inherit;font-weight:700;font-size:14px;padding:9px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.mini.wa{border-color:var(--ok);color:var(--ok)}
+.mini.sent{background:var(--ok);border-color:var(--ok);color:#fff}
+.warn{color:#c92a2a;font-size:14px;margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="gift">🎁</div>
+<h1>Família Buscapé</h1>
+<p class="sub">Amigo Oculto</p>
+</header>
+
+<!-- Sem link pessoal -->
+<section class="card center hide" id="intro">
+<h2>Abra o seu link pessoal</h2>
+<p class="note">O organizador enviou para você um link só seu (pelo WhatsApp). Abra esse link para descobrir quem você tirou. 🤫</p>
+</section>
+
+<!-- Confirmação -->
+<section class="card center hide" id="confirm">
+<p>Este link é de</p>
+<div class="who" id="cname"></div>
+<button class="btn" id="draw">Sou eu! Revelar meu amigo oculto 🎲</button>
+<button class="btn ghost" id="notme">Não sou eu</button>
+<p class="note">Depois de revelar, o resultado fica travado neste celular.</p>
+</section>
+
+<!-- Resultado (travado) -->
+<section class="card center hide" id="result">
+<p id="rhead">Seu amigo oculto é…</p>
+<div class="slot" id="slot">…</div>
+<p class="note hide" id="rnote">Guarde segredo! 🤫 Neste celular, o link vai abrir sempre só o seu resultado.</p>
+</section>
+
+<!-- Organizador -->
+<section class="card hide" id="admin">
+<h2>Organizador</h2>
+<div id="adm-setup">
+  <p class="note" style="margin-top:0">Um nome por linha. O sorteio é feito agora, de forma aleatória, e ninguém tira a si mesmo.</p>
+  <textarea id="names" spellcheck="false"></textarea>
+  <button class="btn" id="go">Sortear 🎲</button>
+  <p class="warn hide" id="err"></p>
+</div>
+<div id="adm-links" class="hide">
+  <p class="note" style="margin-top:0">Sorteio feito! Envie a cada pessoa o link dela. Os resultados <b>não aparecem aqui</b>: só quem abrir o próprio link vê o seu.</p>
+  <div id="list"></div>
+  <p class="warn hide" id="filewarn">⚠️ Esta página está aberta direto do arquivo. Hospede-a online (ex.: GitHub Pages) e gere os links de lá, senão eles não vão funcionar nos outros celulares.</p>
+  <button class="btn ghost" id="redo">Refazer sorteio (invalida os links antigos)</button>
+</div>
+</section>
+</main>
+
+<script>
+var DEFAULT_NAMES=["Adriana","Andrea","Bito","Duda","Giovanna","Isabella","Jhon","Maria Luiza","Manuella","Matheus","Raimunda"];
+var KEY="amigo-oculto-buscape-v4";      // resultado travado neste celular
+var ADM="amigo-oculto-buscape-v4-adm";  // links gerados pelo organizador
+var $=function(i){return document.getElementById(i)};
+
+/* ---------- utilidades ---------- */
+function load(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function b64e(s){var by=new TextEncoder().encode(s),b="";by.forEach(function(x){b+=String.fromCharCode(x)});return btoa(b).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+function b64d(s){s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new TextDecoder().decode(a)}
+function rnd(n){var a=new Uint32Array(1),lim=Math.floor(4294967296/n)*n,x;do{crypto.getRandomValues(a);x=a[0]}while(x>=lim);return x%n}
+function show(id){["intro","confirm","result","admin"].forEach(function(x){$(x).classList.toggle("hide",x!==id)})}
+function baseUrl(){return location.href.split("#")[0].split("?")[0]}
+
+/* ---------- sorteio (Sattolo: ciclo único, ninguém tira a si mesmo) ---------- */
+function sortear(names){
+  var n=names.length,a=[],i,j,t;
+  for(i=0;i<n;i++)a.push(i);
+  for(i=n-1;i>0;i--){j=rnd(i);t=a[i];a[i]=a[j];a[j]=t}
+  return names.map(function(nm,k){return {name:nm,to:names[a[k]]}});
+}
+
+/* ---------- participante ---------- */
+function lockResult(){
+  // remove o link da barra de endereço e impede o botão "voltar"
+  try{history.replaceState(null,"",location.pathname+location.search.replace(/[?&]admin\b/,""))}catch(e){}
+  try{
+    history.pushState(null,"",location.href);
+    window.addEventListener("popstate",function(){history.pushState(null,"",location.href)});
+  }catch(e){}
+}
+function reveal(me,to,animate){
+  show("result");
+  var slot=$("slot");
+  $("rnote").classList.add("hide");slot.classList.remove("reveal");
+  $("rhead").textContent=me+", seu amigo oculto é…";
+  lockResult();
+  function end(){slot.textContent=to;slot.classList.add("reveal");$("rnote").classList.remove("hide")}
+  if(!animate){end();return}
+  var t=0,iv=setInterval(function(){
+    slot.textContent=DEFAULT_NAMES[rnd(DEFAULT_NAMES.length)];
+    if(++t>26){clearInterval(iv);end()}},85);
+}
+function readToken(){
+  var m=location.hash.match(/[#&]p=([A-Za-z0-9_-]+)/);
+  if(!m)return null;
+  try{var d=JSON.parse(b64d(m[1]));if(d&&d.length===2&&d[0]&&d[1])return {me:d[0],to:d[1]}}catch(e){}
+  return null;
+}
+
+/* ---------- organizador ---------- */
+function tokenFor(p){return b64e(JSON.stringify([p.name,p.to]))}
+function renderLinks(draw){
+  $("adm-setup").classList.add("hide");$("adm-links").classList.remove("hide");
+  $("filewarn").classList.toggle("hide",location.protocol!=="file:");
+  var list=$("list");list.textContent="";
+  draw.forEach(function(p){
+    var url=baseUrl()+"#p="+tokenFor(p);
+    var row=document.createElement("div");row.className="row";
+    var nm=document.createElement("b");nm.textContent=p.name;
+    var cp=document.createElement("button");cp.className="mini";cp.textContent="Copiar link";
+    cp.onclick=function(){copy(url);cp.textContent="Copiado ✓";cp.classList.add("sent")};
+    var wa=document.createElement("button");wa.className="mini wa";wa.textContent="WhatsApp";
+    wa.onclick=function(){
+      var msg="🎁 Amigo Oculto – Família Buscapé\nOlá, "+p.name+"! Este é o SEU link pessoal. Abra quando estiver sozinho(a) e não repasse para ninguém 🤫\n"+url;
+      window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");
+      wa.classList.add("sent");wa.textContent="Enviado ✓";
+    };
+    row.appendChild(nm);row.appendChild(cp);row.appendChild(wa);list.appendChild(row);
+  });
+}
+function copy(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(function(){prompt("Copie o link:",t)})}
+  else{prompt("Copie o link:",t)}
+}
+function startAdmin(){
+  show("admin");
+  $("names").value=DEFAULT_NAMES.join("\n");
+  var d=load(ADM);
+  if(d&&d.length)renderLinks(d);
+  $("go").onclick=function(){
+    var seen={},names=[];
+    $("names").value.split("\n").forEach(function(s){s=s.trim();if(s&&!seen[s.toLowerCase()]){seen[s.toLowerCase()]=1;names.push(s)}});
+    var err=$("err");
+    if(names.length<3){err.textContent="Coloque pelo menos 3 nomes (sem repetir).";err.classList.remove("hide");return}
+    err.classList.add("hide");
+    var draw=sortear(names);save(ADM,draw);renderLinks(draw);
+  };
+  $("redo").onclick=function(){
+    if(!confirm("Refazer o sorteio? Os links enviados antes deixam de valer."))return;
+    try{localStorage.removeItem(ADM)}catch(e){}
+    $("adm-links").classList.add("hide");$("adm-setup").classList.remove("hide");
+  };
+}
+
+/* ---------- início ---------- */
+(function init(){
+  if(/[?&]admin\b/.test(location.search)){startAdmin();return}
+
+  // resultado já revelado neste celular: fica travado
+  var st=load(KEY);
+  if(st&&st.me&&st.to){reveal(st.me,st.to,false);return}
+
+  var tk=readToken();
+  if(!tk){show("intro");return}
+
+  $("cname").textContent=tk.me;
+  show("confirm");
+  $("draw").onclick=function(){save(KEY,{me:tk.me,to:tk.to});reveal(tk.me,tk.to,true)};
+  $("notme").onclick=function(){try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}show("intro")};
+})();
+</script>
+</body>
+</html>
