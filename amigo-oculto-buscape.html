@@ -38,6 +38,10 @@ textarea{width:100%;min-height:210px;font:inherit;font-size:16px;padding:12px;bo
 .mini.wa{border-color:var(--ok);color:var(--ok)}
 .mini.sent{background:var(--ok);border-color:var(--ok);color:#fff}
 .warn{color:#c92a2a;font-size:14px;margin-top:10px}
+input[type=text]{flex:1;min-width:0;font:inherit;font-size:16px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);-webkit-user-select:text;user-select:text}
+.addrow{display:flex;gap:8px;margin-top:12px}
+.mini.del{color:#c92a2a;border-color:#c92a2a}
+.msg{font-size:14px;margin:10px 0 0}
 </style>
 </head>
 <body>
@@ -73,17 +77,20 @@ textarea{width:100%;min-height:210px;font:inherit;font-size:16px;padding:12px;bo
 <!-- Organizador -->
 <section class="card hide" id="admin">
 <h2>Organizador</h2>
-<div id="adm-setup">
-  <p class="note" style="margin-top:0">Um nome por linha. O sorteio é feito agora, de forma aleatória, e ninguém tira a si mesmo.</p>
-  <textarea id="names" spellcheck="false"></textarea>
-  <button class="btn" id="go">Sortear 🎲</button>
-  <p class="warn hide" id="err"></p>
+<p class="note" style="margin-top:0" id="count"></p>
+<div id="plist"></div>
+<div class="addrow">
+  <input id="newname" type="text" placeholder="Novo participante" autocomplete="off" maxlength="40">
+  <button class="mini" id="add">Adicionar</button>
 </div>
+<p class="msg hide" id="err"></p>
+<button class="btn" id="go">Sortear 🎲</button>
+<p class="note center" id="hint">Ao adicionar, remover ou editar alguém depois do sorteio, o sorteio é refeito automaticamente e os links antigos deixam de valer.</p>
 <div id="adm-links" class="hide">
-  <p class="note" style="margin-top:0">Sorteio feito! Envie a cada pessoa o link dela. Os resultados <b>não aparecem aqui</b>: só quem abrir o próprio link vê o seu.</p>
+  <h2 style="margin-top:24px">Links pessoais</h2>
+  <p class="note" style="margin-top:0">Envie a cada pessoa o link dela. Os resultados <b>não aparecem aqui</b>: só quem abrir o próprio link vê o seu.</p>
   <div id="list"></div>
   <p class="warn hide" id="filewarn">⚠️ Esta página está aberta direto do arquivo. Hospede-a online (ex.: GitHub Pages) e gere os links de lá, senão eles não vão funcionar nos outros celulares.</p>
-  <button class="btn ghost" id="redo">Refazer sorteio (invalida os links antigos)</button>
 </div>
 </section>
 </main>
@@ -135,17 +142,67 @@ function reveal(me,to,animate){
 function readToken(){
   var m=location.hash.match(/[#&]p=([A-Za-z0-9_-]+)/);
   if(!m)return null;
-  try{var d=JSON.parse(b64d(m[1]));if(d&&d.length===2&&d[0]&&d[1])return {me:d[0],to:d[1]}}catch(e){}
+  try{var d=JSON.parse(b64d(m[1]));if(d&&d.length>=2&&d[0]&&d[1])return {me:d[0],to:d[1],d:d[2]||0}}catch(e){}
   return null;
 }
 
 /* ---------- organizador ---------- */
-function tokenFor(p){return b64e(JSON.stringify([p.name,p.to]))}
-function renderLinks(draw){
-  $("adm-setup").classList.add("hide");$("adm-links").classList.remove("hide");
+var A=null; // {names:[], draw:null|[{name,to}], id:número do sorteio}
+function loadAdmin(){var a=load(ADM);if(a&&a.names&&a.names.length)return a;return {names:DEFAULT_NAMES.slice(),draw:null,id:0}}
+function saveAdmin(){save(ADM,A)}
+function tokenFor(p){return b64e(JSON.stringify([p.name,p.to,A.id]))}
+function doDraw(){A.draw=sortear(A.names);A.id=Date.now();saveAdmin()}
+function exists(n,skip){var l=n.toLowerCase();return A.names.some(function(x,i){return i!==skip&&x.toLowerCase()===l})}
+function msg(t,bad){var e=$("err");if(!t){e.className="msg hide";return}e.textContent=t;e.className="msg "+(bad?"warn":"note")}
+function copy(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(function(){prompt("Copie o link:",t)})}
+  else{prompt("Copie o link:",t)}
+}
+// confirma antes de mudar a lista quando já existe sorteio (a mudança refaz tudo)
+function okToChange(extra){
+  if(!A.draw)return true;
+  return confirm((extra?extra+"\n\n":"")+"Isso vai refazer o sorteio e os links já enviados deixam de valer. Continuar?");
+}
+// depois de mudar a lista: refaz o sorteio se já havia um
+function afterChange(){
+  if(A.draw){
+    if(A.names.length<3){A.draw=null;saveAdmin();renderAdmin("Sobraram menos de 3 participantes: o sorteio foi cancelado. Adicione mais gente para sortear.",true);return}
+    doDraw();renderAdmin("Sorteio refeito com "+A.names.length+" participantes. Envie os novos links!");return;
+  }
+  saveAdmin();renderAdmin();
+}
+function renderAdmin(text,bad){
+  var n=A.names.length;
+  $("count").textContent=n+(n===1?" participante":" participantes");
+  var pl=$("plist");pl.textContent="";
+  A.names.forEach(function(name,i){
+    var row=document.createElement("div");row.className="row";
+    var b=document.createElement("b");b.textContent=name;
+    var ed=document.createElement("button");ed.className="mini";ed.textContent="Editar";
+    ed.onclick=function(){
+      var v=prompt("Editar nome:",name);if(v===null)return;
+      v=v.trim();if(!v||v===name)return;
+      if(exists(v,i)){msg("Já existe alguém com esse nome.",true);return}
+      if(!okToChange())return;
+      A.names[i]=v;afterChange();
+    };
+    var rm=document.createElement("button");rm.className="mini del";rm.textContent="Remover";
+    rm.onclick=function(){
+      if(!A.draw&&!confirm("Remover "+name+"?"))return;
+      if(A.draw&&!okToChange("Remover "+name+"?"))return;
+      A.names.splice(i,1);afterChange();
+    };
+    row.appendChild(b);row.appendChild(ed);row.appendChild(rm);pl.appendChild(row);
+  });
+  msg(text,bad);
+  $("go").textContent=A.draw?"Refazer sorteio 🎲":"Sortear 🎲";
+  $("hint").classList.toggle("hide",!A.draw);
+  var box=$("adm-links");
+  if(!A.draw){box.classList.add("hide");return}
+  box.classList.remove("hide");
   $("filewarn").classList.toggle("hide",location.protocol!=="file:");
   var list=$("list");list.textContent="";
-  draw.forEach(function(p){
+  A.draw.forEach(function(p){
     var url=baseUrl()+"#p="+tokenFor(p);
     var row=document.createElement("div");row.className="row";
     var nm=document.createElement("b");nm.textContent=p.name;
@@ -153,51 +210,48 @@ function renderLinks(draw){
     cp.onclick=function(){copy(url);cp.textContent="Copiado ✓";cp.classList.add("sent")};
     var wa=document.createElement("button");wa.className="mini wa";wa.textContent="WhatsApp";
     wa.onclick=function(){
-      var msg="🎁 Amigo Oculto – Família Buscapé\nOlá, "+p.name+"! Este é o SEU link pessoal. Abra quando estiver sozinho(a) e não repasse para ninguém 🤫\n"+url;
-      window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");
+      var m="🎁 Amigo Oculto – Família Buscapé\nOlá, "+p.name+"! Este é o SEU link pessoal. Abra quando estiver sozinho(a) e não repasse para ninguém 🤫\n"+url;
+      window.open("https://wa.me/?text="+encodeURIComponent(m),"_blank");
       wa.classList.add("sent");wa.textContent="Enviado ✓";
     };
     row.appendChild(nm);row.appendChild(cp);row.appendChild(wa);list.appendChild(row);
   });
 }
-function copy(t){
-  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(function(){prompt("Copie o link:",t)})}
-  else{prompt("Copie o link:",t)}
-}
 function startAdmin(){
+  A=loadAdmin();
   show("admin");
-  $("names").value=DEFAULT_NAMES.join("\n");
-  var d=load(ADM);
-  if(d&&d.length)renderLinks(d);
+  function add(){
+    var v=$("newname").value.trim();
+    if(!v)return;
+    if(exists(v,-1)){msg("Já existe alguém com esse nome.",true);return}
+    if(!okToChange())return;
+    A.names.push(v);$("newname").value="";afterChange();
+  }
+  $("add").onclick=add;
+  $("newname").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();add()}};
   $("go").onclick=function(){
-    var seen={},names=[];
-    $("names").value.split("\n").forEach(function(s){s=s.trim();if(s&&!seen[s.toLowerCase()]){seen[s.toLowerCase()]=1;names.push(s)}});
-    var err=$("err");
-    if(names.length<3){err.textContent="Coloque pelo menos 3 nomes (sem repetir).";err.classList.remove("hide");return}
-    err.classList.add("hide");
-    var draw=sortear(names);save(ADM,draw);renderLinks(draw);
+    if(A.names.length<3){msg("Coloque pelo menos 3 participantes.",true);return}
+    if(A.draw&&!confirm("Refazer o sorteio? Os links enviados antes deixam de valer."))return;
+    doDraw();renderAdmin(A.draw?"Sorteio feito com "+A.names.length+" participantes. Envie os links abaixo!":"");
   };
-  $("redo").onclick=function(){
-    if(!confirm("Refazer o sorteio? Os links enviados antes deixam de valer."))return;
-    try{localStorage.removeItem(ADM)}catch(e){}
-    $("adm-links").classList.add("hide");$("adm-setup").classList.remove("hide");
-  };
+  renderAdmin();
 }
 
 /* ---------- início ---------- */
 (function init(){
   if(/[?&]admin\b/.test(location.search)){startAdmin();return}
 
-  // resultado já revelado neste celular: fica travado
-  var st=load(KEY);
-  if(st&&st.me&&st.to){reveal(st.me,st.to,false);return}
+  var st=load(KEY),tk=readToken();
 
-  var tk=readToken();
+  // resultado já revelado neste celular: fica travado
+  // (única exceção: um link de um sorteio MAIS NOVO substitui o resultado antigo)
+  if(st&&st.me&&st.to&&!(tk&&tk.d>(st.d||0))){reveal(st.me,st.to,false);return}
+
   if(!tk){show("intro");return}
 
   $("cname").textContent=tk.me;
   show("confirm");
-  $("draw").onclick=function(){save(KEY,{me:tk.me,to:tk.to});reveal(tk.me,tk.to,true)};
+  $("draw").onclick=function(){save(KEY,{me:tk.me,to:tk.to,d:tk.d});reveal(tk.me,tk.to,true)};
   $("notme").onclick=function(){try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}show("intro")};
 })();
 </script>
